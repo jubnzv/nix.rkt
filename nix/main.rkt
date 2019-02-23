@@ -7,6 +7,7 @@
          sem-unlink
          sem-post
          sem-wait
+         sem-trywait
          sem-getvalue)
 
 (require ffi/unsafe
@@ -15,8 +16,10 @@
 
 (define-ffi-definer define-libpthread (ffi-lib "libpthread"))
 
-;; Racket value that reflects a C type via pointer
-(define _sem_t-ptr (_cpointer/null 'sem_t))
+
+;; C types
+;(define _sem_t (_cpointer/null 'sem_t))
+(define-cpointer-type _sem_t)
 
 
 ;; Error handling helpers
@@ -44,10 +47,24 @@
 
 ;; Foreign functions
 
+(define-libpthread sem-init (_fun #:save-errno 'posix
+                                  (sem : (_ptr io _sem_t))
+                                  _int
+                                  _int
+                                  -> (r : _int)
+                                  -> (when (check r 'sem-init) sem))
+  #:c-id sem_init)
+
+(define-libpthread sem-destroy (_fun #:save-errno 'posix
+                                      (sem : (_ptr i _sem_t))
+                                      -> (r : _int)
+                                      -> (when (check r 'sem-destroy) #t))
+  #:c-id sem_destroy)
+
 (define-libpthread sem-open (_fun #:save-errno 'posix
                                   _path
                                   _int
-                                  -> (r : _sem_t-ptr)
+                                  -> (r : _sem_t)
                                   -> (when (check-null r 'sem-open) r))
   #:c-id sem_open)
 
@@ -59,20 +76,26 @@
   #:c-id sem_unlink)
 
 (define-libpthread sem-wait (_fun #:save-errno 'posix
-                                  (_ptr i _sem_t-ptr) ;; ???
+                                  _sem_t
                                   -> (r : _int)
-                                  -> (check r 'sem-wait))
+                                  -> (when (check r 'sem-wait) #t))
   #:c-id sem_wait)
 
-(define-libpthread sem-post (_fun #:save-errno 'posix
-                                  _sem_t-ptr
+(define-libpthread sem-trywait (_fun #:save-errno 'posix
+                                  (_ptr i _sem_t) ;; ???
                                   -> (r : _int)
-                                  -> (check r 'sem-post))
+                                  -> (when (check r 'sem-trywait) #t))
+  #:c-id sem_trywait)
+
+(define-libpthread sem-post (_fun #:save-errno 'posix
+                                  _sem_t
+                                  -> (r : _int)
+                                  -> (when (check r 'sem-post) #t))
   #:c-id sem_post)
 
 (define-libpthread sem-getvalue (_fun #:save-errno 'posix
-                                      _sem_t-ptr
+                                      _sem_t
                                       (val : (_ptr o _int))
                                       -> (r : _int)
-                                      -> (values val r))
+                                      -> (when (check r 'sem-getbalue) val))
   #:c-id sem_getvalue)

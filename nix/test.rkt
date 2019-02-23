@@ -8,29 +8,37 @@
   (syntax-rules ()
     [(_ a b) (check-equal? (call-with-values (thunk a) list) b)]))
 
-
-;; POSIX semaphores tests
-(define test-sem-name "/test-nix-1")
 
+;; Named POSIX semaphores
 (test-begin
+  (define test-sem-name "/test-nix-1")
+
   ;; Unlink if already exists
   (sem-unlink test-sem-name)
 
-  ;; Open
-  (define test-sem-p (sem-open test-sem-name O_CREAT))
+  ;; Open and unlink
+  (define test-sem-p (sem-open test-sem-name (+ O_CREAT O_EXCL)))
   (check-not-false test-sem-p)
   (check-not-equal? test-sem-p (void))
   (check-exn exn:fail?
              (lambda () (sem-open test-sem-name O_CREAT))
              "Permission denied")
+  (check-exn exn:fail?
+             (lambda () (sem-open test-sem-name (+ O_CREAT O_EXCL))))
 
   ;; Change values
-  (check-values-equal? (sem-getvalue test-sem-p) '(0 0))
+  (check-equal? (sem-getvalue test-sem-p) 0)
+  (sem-post test-sem-p)
+  (check-equal? (sem-getvalue test-sem-p) 1)
   (sem-wait test-sem-p)
-  (check-values-equal? (sem-getvalue test-sem-p) '(0 0))
+  (check-equal? (sem-getvalue test-sem-p) 0)
   (sem-post test-sem-p)
-  (check-values-equal? (sem-getvalue test-sem-p) '(1 0))
+  (check-equal? (sem-getvalue test-sem-p) 1)
   (sem-post test-sem-p)
-  (check-values-equal? (sem-getvalue test-sem-p) '(2 0))
+  (check-equal? (sem-getvalue test-sem-p) 2)
+  (sem-trywait test-sem-p)
+  (check-equal? (sem-getvalue test-sem-p) 2)
 
-  (check-equal? (sem-unlink test-sem-name) 0))
+  ;; Can't unlink twice
+  (check-equal? (sem-unlink test-sem-name) 0)
+  (check-equal? (sem-unlink test-sem-name) -1))
