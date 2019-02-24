@@ -7,3 +7,6 @@
 
 (require "semaphores.rkt")
 (provide (all-from-out "semaphores.rkt"))
+
+(require "shm.rkt")
+(provide (all-from-out "shm.rkt"))

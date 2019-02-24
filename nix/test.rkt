@@ -21,7 +21,7 @@
   (check-not-false test-sem-p)
   (check-not-equal? test-sem-p (void))
   (check-exn exn:fail?
-             (lambda () (sem-open test-sem-name O_CREAT))
+             (lambda () (sem-open test-sem-name (+ O_CREAT O_EXCL)))
              "Permission denied")
   (check-exn exn:fail?
              (lambda () (sem-open test-sem-name (+ O_CREAT O_EXCL))))
@@ -40,5 +40,17 @@
   (check-equal? (sem-getvalue test-sem-p) 2)
 
   ;; Can't unlink twice
-  (check-equal? (sem-unlink test-sem-name) 0)
-  (check-equal? (sem-unlink test-sem-name) -1))
+  (check-not-false (sem-unlink test-sem-name))
+  (check-false (sem-unlink test-sem-name)))
+
+
+;; Named POSIX shared memory
+(test-begin
+  (define test-shm-name "test-nix-mem-1")
+
+  ;; Open and unlink
+  (shm-unlink test-shm-name)
+  (define test-shm-fd (shm-open test-shm-name (+ O_EXCL O_CREAT O_RDWR) #o644))
+  (check > test-shm-fd 0)
+  (check-not-false (shm-unlink test-shm-name))
+  (check-false (shm-unlink test-shm-name)))
