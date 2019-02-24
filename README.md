@@ -6,9 +6,11 @@ Racket bindings to common UNIX APIs.
 
 There are some basic FFI wrappers that help me debug my C code.
 
+Currently supported features:
+* POSIX semaphores
+
 I plan to gradually expand the functionality and add some examples.
 
 ## License
 
 MIT
-
